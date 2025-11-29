@@ -37,6 +37,9 @@ final class MigrationFilters
         return $whereCondition;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getParams(): array
     {
         $params = [];

@@ -11,7 +11,6 @@ use Symfony\Bundle\MakerBundle\InputConfiguration;
 use Symfony\Bundle\MakerBundle\Maker\AbstractMaker;
 use Symfony\Bundle\MakerBundle\Util\UseStatementGenerator;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Webmozart\Assert\Assert;
@@ -31,7 +30,7 @@ final class MakeMigrationCommand extends AbstractMaker
 
     public static function getCommandDescription(): string
     {
-        return 'Create a new Doctrine migration';
+        return 'Create a new Doctrine migration that can migrate page template data';
     }
 
     public static function getCommandName(): string
@@ -42,10 +41,11 @@ final class MakeMigrationCommand extends AbstractMaker
     public function configureCommand(Command $command, InputConfiguration $inputConfig): void
     {
         $command
-            ->addArgument(
+            ->addOption(
                 self::ARG_LOCALES,
-                InputArgument::IS_ARRAY | InputArgument::REQUIRED,
-                'Array of locales that should be migrated (e.g. en fr de). All by default.'
+                null,
+                InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
+                'Array of locales that should be migrated (e.g. en fr de). All by default.',
             )
             ->addOption(
                 self::OPT_WEBSPACE,
@@ -56,14 +56,15 @@ final class MakeMigrationCommand extends AbstractMaker
             ->addOption(
                 self::OPT_TEMPLATE_KEYS,
                 null,
-                InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
-                'Filter for template keys (All by default)'
+                InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
+                'Filter for template keys (All by default)',
             )
             ->addOption(
                 self::OPT_STAGES,
                 null,
                 InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
-                'Filter for stages (Allowed values: live, draft. All by default)'
+                'Filter for stages (Allowed values: live, draft. All by default)',
+                suggestedValues: ['live', 'draft'],
             )
         ;
     }
@@ -79,7 +80,8 @@ final class MakeMigrationCommand extends AbstractMaker
     public function generate(InputInterface $input, ConsoleStyle $io, Generator $generator): void
     {
         /** @var array<string> $locales */
-        $locales = $input->getArgument(self::ARG_LOCALES) ?? [];
+        $locales = $input->getOption(self::ARG_LOCALES);
+
         /** @var string|null $webspace */
         $webspace = $input->getOption(self::OPT_WEBSPACE);
         /** @var array<string> $templateKeys */
@@ -124,14 +126,12 @@ final class MakeMigrationCommand extends AbstractMaker
                 'class_name' => $className,
                 'namespace' => 'DoctrineMigrations',
                 'use_statements' => $useStatements,
-                'filters' => [
-                    new MigrationFilters(
-                        $locales,
-                        $webspace,
-                        $templateKeys,
-                        $stages
-                    ),
-                ],
+                'filters' => new MigrationFilters(
+                    $locales,
+                    $webspace,
+                    $templateKeys,
+                    $stages
+                ),
             ]
         );
 

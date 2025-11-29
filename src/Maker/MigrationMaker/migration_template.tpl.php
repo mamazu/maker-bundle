@@ -34,14 +34,14 @@ final class <?= $class_name; ?> extends AbstractMigration
         
     public function up(Schema $schema): void
     {
-        // By default only migrate the current version of the page.
-        $whereCondition = <?php \var_export($filters->getWhereCondition(), true); ?>;
-        $params = <?php \var_export($filters->getParams(), true); ?>;
+        // By default only migrate the current version of the page (version 0).
+        $whereCondition = <?php \var_export($filters->getWhereCondition()); ?>;
+        $params = <?php \var_export($filters->getParams()); ?>;
 
         $sql = 'SELECT id, templateKey, locale, stage, templateData FROM pa_page_dimension_contents WHERE '.$whereCondition;
-        $pages = $this->connection->executeQuery($sql, $params);
 
-        foreach ($pages as $page) {
+        // Foreach result run the process method to get the new template data.
+        foreach ($this->connection->executeQuery($sql, $params) as $page) {
             $newTemplateData = $this->process(
                 $page['templateKey'],  
                 $page['stage'], 
@@ -49,6 +49,7 @@ final class <?= $class_name; ?> extends AbstractMigration
                 json_decode($page['templateData'], associative: true, flags: JSON_THROW_ON_ERROR)
             );
 
+            // Update the template data in the database.
             $this->connection->update('pa_page_dimension_contents', [
                 'templateData' => json_encode($newTemplateData, flags: JSON_THROW_ON_ERROR),
             ], [
